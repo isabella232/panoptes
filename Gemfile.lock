@@ -1,4 +1,14 @@
 GIT
+  remote: https://github.com/camallen/Congestion.git
+  revision: 6bf0ffa7b206b8d5723042e724b4c6953f3233fd
+  ref: 6bf0ffa7b2
+  branch: ttl-freshly-added-keys
+  specs:
+    congestion (0.0.3)
+      connection_pool (>= 2.0)
+      redis (>= 3.1)
+
+GIT
   remote: https://github.com/zooniverse/restpack_serializer.git
   revision: cef0969cef79a31de774e71c63de2a934c9e9f7f
   ref: cef0969cef
@@ -91,13 +101,10 @@ GEM
       timers (>= 4.1.1)
     coderay (1.1.2)
     concurrent-ruby (1.1.6)
-    congestion (0.0.3)
-      connection_pool (>= 2.0)
-      redis (>= 3.1)
     connection_pool (2.2.2)
     crass (1.0.6)
     dalli (2.7.10)
-    database_cleaner (1.7.0)
+    database_cleaner (1.8.5)
     debug_inspector (0.0.3)
     deep_cloneable (2.3.2)
       activerecord (>= 3.1.0, < 6)
@@ -148,7 +155,7 @@ GEM
     graphiql-rails (1.7.0)
       railties
       sprockets-rails
-    graphql (1.9.15)
+    graphql (1.11.1)
     guard (2.14.1)
       formatador (>= 0.2.4)
       listen (>= 2.7, < 4.0)
@@ -229,7 +236,7 @@ GEM
     multi_xml (0.6.0)
     multipart-post (2.1.1)
     nenv (0.3.0)
-    newrelic_rpm (6.7.0.359)
+    newrelic_rpm (6.11.0.365)
     nio4r (2.5.2)
     nokogiri (1.10.9)
       mini_portile2 (~> 2.4.0)
@@ -257,7 +264,7 @@ GEM
     orm_adapter (0.5.0)
     p3p (2.0.0)
       rack (>= 1.6.2)
-    panoptes-client (0.4.0)
+    panoptes-client (1.1.0)
       deprecate
       faraday
       faraday-panoptes (~> 0.3.0)
@@ -368,7 +375,7 @@ GEM
     rubocop-rails (2.4.1)
       rack (>= 1.1)
       rubocop (>= 0.72.0)
-    rubocop-rspec (1.37.0)
+    rubocop-rspec (1.41.0)
       rubocop (>= 0.68.1)
     ruby-progressbar (1.10.1)
     ruby_dep (1.5.0)
@@ -454,8 +461,9 @@ DEPENDENCIES
   active_record_union (~> 1.3.0)
   activerecord-import (~> 1.0)
   aws-sdk (~> 2.10)
+  congestion!
   dalli
-  database_cleaner (~> 1.7.0)
+  database_cleaner (~> 1.8.5)
   deep_cloneable (~> 2.3.2)
   devise (~> 4.7)
   doorkeeper (~> 4.4)

@@ -175,6 +175,14 @@ spec:
               httpHeaders:
                  - name: X-Forwarded-Proto
                    value: https
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 81
+              httpHeaders:
+                 - name: X-Forwarded-Proto
+                   value: https
+            initialDelaySeconds: 20
           env:
           - name: PG_STATEMENT_TIMEOUT
             value: '65000'
@@ -196,7 +204,7 @@ spec:
               exec:
                 command: ["/bin/bash", "-c", "cp -R /rails_app/public/* /static-assets"]
         - name: panoptes-production-nginx
-          image: zooniverse/apps-nginx:xenial
+          image: zooniverse/nginx:1.19.0
           resources:
             requests:
               memory: "100Mi"
@@ -212,6 +220,19 @@ spec:
                  - name: X-Forwarded-Proto
                    value: https
             initialDelaySeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+              httpHeaders:
+                 - name: X-Forwarded-Proto
+                   value: https
+            initialDelaySeconds: 20
+          lifecycle:
+            preStop:
+              exec:
+                # SIGTERM triggers a quick exit; gracefully terminate instead
+                command: ["/usr/sbin/nginx","-s","quit"]
           ports:
             - containerPort: 80
           volumeMounts:
@@ -221,7 +242,10 @@ spec:
               mountPath: "/etc/nginx-sites"
       volumes:
         - name: static-assets
-          emptyDir: {}
+          hostPath:
+            # directory location on host node temp disk
+            path: /mnt/panoptes-production-app-static-assets
+            type: DirectoryOrCreate
         - name: panoptes-nginx-config
           configMap:
             name: panoptes-nginx-conf-production
@@ -239,7 +263,7 @@ spec:
     kind: Deployment
     name: panoptes-production-app
   minReplicas: 2
-  maxReplicas: 8
+  maxReplicas: 16
   targetCPUUtilizationPercentage: 80
 ---
 apiVersion: v1
@@ -303,7 +327,10 @@ spec:
             readOnly: true
       volumes:
         - name: panoptes-production-dumpworker-data
-          emptyDir: {}
+          hostPath:
+            # directory location on host node temp disk
+            path: /mnt/panoptes-production-dumpworker-data
+            type: DirectoryOrCreate
         - name: jwt-production
           secret:
             secretName: panoptes-doorkeeper-jwt-production
@@ -319,7 +346,7 @@ spec:
     name: panoptes-production-sidekiq
   minReplicas: 2
   maxReplicas: 6
-  targetCPUUtilizationPercentage: 95
+  targetCPUUtilizationPercentage: 80
 ---
 kind: PersistentVolumeClaim
 apiVersion: v1
@@ -375,7 +402,6 @@ spec:
       containers:
         - name: panoptes-production-redis
           image: redis:6.0.5
-          args: ['--appendonly yes', '--appendfsync no']
           resources:
             requests:
               memory: "2500Mi"
@@ -479,9 +505,17 @@ spec:
   tls:
   - hosts:
     - panoptes.azure.zooniverse.org
+    - panoptes.zooniverse.org
     secretName: panoptes-production-tls-secret
   rules:
   - host: panoptes.azure.zooniverse.org
+    http:
+      paths:
+      - backend:
+          serviceName: panoptes-production-app
+          servicePort: 80
+        path: /(.*)
+  - host: panoptes.zooniverse.org
     http:
       paths:
       - backend:

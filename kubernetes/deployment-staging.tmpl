@@ -78,6 +78,7 @@ data:
   NEW_RELIC_MONITOR_MODE: 'true'
   PAGE_SIZE_LIMIT: '100'
   REDIS_URL: 'redis://panoptes-staging-redis:6379/0'
+  RAILS_MAX_THREADS: '4'
   SIDEKIQ_CONCURRENCY: '4'
   STORAGE_ADAPTER: aws
   STORAGE_BUCKET: zooniverse-static
@@ -119,6 +120,14 @@ spec:
               httpHeaders:
                  - name: X-Forwarded-Proto
                    value: https
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 81
+              httpHeaders:
+                 - name: X-Forwarded-Proto
+                   value: https
+            initialDelaySeconds: 20
           env:
           - name: PG_STATEMENT_TIMEOUT
             value: '65000'
@@ -140,7 +149,7 @@ spec:
               exec:
                 command: ["/bin/bash", "-c", "cp -R /rails_app/public/* /static-assets"]
         - name: panoptes-staging-nginx
-          image: zooniverse/apps-nginx:xenial
+          image: zooniverse/nginx:1.19.0
           resources:
             requests:
               memory: "100Mi"
@@ -156,6 +165,19 @@ spec:
                  - name: X-Forwarded-Proto
                    value: https
             initialDelaySeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+              httpHeaders:
+                 - name: X-Forwarded-Proto
+                   value: https
+            initialDelaySeconds: 20
+          lifecycle:
+            preStop:
+              exec:
+                # SIGTERM triggers a quick exit; gracefully terminate instead
+                command: ["/usr/sbin/nginx","-s","quit"]
           ports:
             - containerPort: 80
           volumeMounts:
@@ -165,7 +187,10 @@ spec:
               mountPath: "/etc/nginx-sites"
       volumes:
         - name: static-assets
-          emptyDir: {}
+          hostPath:
+            # directory location on host node temp disk
+            path: /mnt/panoptes-staging-app-static-assets
+            type: DirectoryOrCreate
         - name: panoptes-nginx-config
           configMap:
             name: panoptes-nginx-conf-staging
@@ -247,7 +272,10 @@ spec:
             readOnly: true
       volumes:
         - name: panoptes-staging-dumpworker-data
-          emptyDir: {}
+          hostPath:
+            # directory location on host node temp disk
+            path: /mnt/panoptes-staging-dumpworker-data
+            type: DirectoryOrCreate
         - name: jwt-staging
           secret:
             secretName: panoptes-doorkeeper-jwt-staging
@@ -263,7 +291,7 @@ spec:
     name: panoptes-staging-sidekiq
   minReplicas: 1
   maxReplicas: 2
-  targetCPUUtilizationPercentage: 95
+  targetCPUUtilizationPercentage: 80
 ---
 kind: PersistentVolumeClaim
 apiVersion: v1
@@ -319,7 +347,6 @@ spec:
       containers:
         - name: panoptes-staging-redis
           image: redis:6.0.5
-          args: ['--appendonly yes', '--appendfsync no']
           resources:
             requests:
               memory: "100Mi"
